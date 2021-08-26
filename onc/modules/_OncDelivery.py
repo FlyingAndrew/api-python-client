@@ -1,12 +1,12 @@
-from ._OncService import _OncService
-from datetime import datetime, timedelta
-import requests
-import os
-import humanize
+from datetime import timedelta
 from time import sleep, time
+
+import humanize
+import requests
+
 from ._DataProductFile import _DataProductFile
+from ._OncService import _OncService
 from ._PollLog import _PollLog
-from .Exceptions import MaxRetriesException
 from ._util import _printErrorMessage, _formatSize
 
 
@@ -17,18 +17,18 @@ class _OncDelivery(_OncService):
 
     def __init__(self, parent: object):
         super().__init__(parent)
-        
+
         # Default seconds to wait between consecutive download tries of a file
         # (when no estimate processing time is available)
         self.pollPeriod = 2.0
 
-
-    def orderDataProduct(self, filters: dict, maxRetries: int, downloadResultsOnly: bool, includeMetadataFile: bool, overwrite: bool):
+    def orderDataProduct(self, filters: dict, maxRetries: int, downloadResultsOnly: bool, includeMetadataFile: bool,
+                         overwrite: bool):
         fileList = []
         try:
             # Request the product
             requestData = self.requestDataProduct(filters)
-            
+
             if downloadResultsOnly:
                 # Only run and return links
                 runData = self.runDataProduct(requestData['dpRequestId'], waitComplete=True)
@@ -39,29 +39,29 @@ class _OncDelivery(_OncService):
                 runData = self.runDataProduct(requestData['dpRequestId'], waitComplete=False)
                 for runId in runData['runIds']:
                     fileList.extend(self._downloadProductFiles(runId, includeMetadataFile, maxRetries, overwrite))
-            
+
             print('')
             self._printProductOrderStats(fileList, runData)
-        except Exception: raise
+        except Exception:
+            raise
 
         return self._formatResult(fileList, runData)
-
 
     def requestDataProduct(self, filters: dict):
         """
         Data product request
         """
         filters['method'] = 'request'
-        filters['token']  = self._config('token')
+        filters['token'] = self._config('token')
         try:
             url = '{:s}api/dataProductDelivery'.format(self._config('baseUrl'))
             response = self._doRequest(url, filters)
-        except Exception: raise
+        except Exception:
+            raise
 
         self._estimatePollPeriod(response)
         self._printProductRequest(response)
         return response
-
 
     def runDataProduct(self, dpRequestId: int, waitComplete: bool):
         """
@@ -72,20 +72,22 @@ class _OncDelivery(_OncService):
         log = _PollLog(True)
         url = '{:s}api/dataProductDelivery'.format(self._config('baseUrl'))
         runResult = {'runIds': [], 'fileCount': 0, 'runTime': 0, 'requestCount': 0}
-        
+
         try:
             start = time()
             while status != 'complete':
-                response = requests.get(url, {'method': 'run', 'token': self._config('token'), 'dpRequestId': dpRequestId}, timeout=self._config('timeout'))
+                response = requests.get(url,
+                                        {'method': 'run', 'token': self._config('token'), 'dpRequestId': dpRequestId},
+                                        timeout=self._config('timeout'))
                 code = response.status_code
                 runResult['requestCount'] += 1
-                
+
                 if response.ok:
                     data = response.json()
                 else:
                     _printErrorMessage(response)
                     raise Exception('The server request failed with HTTP status {:d}.'.format(code), code)
-                
+
                 if waitComplete:
                     status = data[0]['status']
                     log.logMessage(data)
@@ -93,40 +95,42 @@ class _OncDelivery(_OncService):
                         sleep(self.pollPeriod)
                 else:
                     status = 'complete'
-            
-            #self.print(data)
-            #print('got filecount {}'.format(data[0]['fileCount']))
+
+            # self.print(data)
+            # print('got filecount {}'.format(data[0]['fileCount']))
             runResult['fileCount'] = data[0]['fileCount']
             runResult['runTime'] = time() - start
-            
+
             # print a new line after the process finishes
             if waitComplete:
                 print('')
 
-        except Exception: raise
-        
+        except Exception as ex:
+            raise ex
+
         # gather a list of runIds
         for run in data:
             runResult['runIds'].append(run['dpRunId'])
 
         return runResult
 
-
-    def downloadDataProduct(self, runId: int, maxRetries: int, downloadResultsOnly: bool, includeMetadataFile: bool, overwrite: bool):
-        '''
+    def downloadDataProduct(self, runId: int, maxRetries: int, downloadResultsOnly: bool, includeMetadataFile: bool,
+                            overwrite: bool):
+        """
         A public wrapper for downloadProductFiles that lets a user download data products with a runId
-        '''
+        """
         try:
             if downloadResultsOnly:
                 fileData = self._infoForProductFiles(runId, 0, includeMetadataFile)
             else:
                 fileData = self._downloadProductFiles(runId, includeMetadataFile, maxRetries, overwrite)
-        except Exception: raise
+        except Exception:
+            raise
 
         return fileData
 
-
-    def _downloadProductFiles(self, runId: int, getMetadata: bool, maxRetries: int, overwrite: bool, fileCount: int=0):
+    def _downloadProductFiles(self, runId: int, getMetadata: bool, maxRetries: int, overwrite: bool,
+                              fileCount: int = 0):
         fileList = []
         index = 1
         baseUrl = self._config('baseUrl')
@@ -136,27 +140,27 @@ class _OncDelivery(_OncService):
         doLoop = True
         timeout = self._config('timeout')
         print('\nDownloading data product files with runId {:d}...'.format(runId))
-        
+
         dpf = _DataProductFile(runId, str(index), baseUrl, token)
-        
+
         # loop thorugh file indexes
         while doLoop:
             # stop after too many retries
             try:
                 status = dpf.download(timeout, self.pollPeriod, self._config('outPath'), maxRetries, overwrite)
-            except Exception: raise
+            except Exception:
+                raise
 
             if status == 200 or status == 777:
                 # file was downloaded (200), or downloaded & skipped (777)
                 fileList.append(dpf.getInfo())
                 index += 1
                 dpf = _DataProductFile(runId, str(index), baseUrl, token)
-            
 
-            elif status != 202 or (fileCount > 0 and index >= fileCount):
+            elif status != 202 or (0 < fileCount <= index):
                 # no more files to download
                 doLoop = False
-        
+
         # get metadata if required
         if getMetadata:
             dpf = _DataProductFile(runId, 'meta', baseUrl, token)
@@ -171,7 +175,6 @@ class _OncDelivery(_OncService):
                 fileList.append(dpf.getInfo())
 
         return fileList
-
 
     def _infoForProductFiles(self, dpRunId: int, fileCount: int, getMetadata: bool):
         """
@@ -189,14 +192,14 @@ class _OncDelivery(_OncService):
         indexes = list(range(1, fileCount + 1))
         if getMetadata:
             indexes.append('meta')
-        
+
         for index in indexes:
-            dpf = _DataProductFile(dpRunId=dpRunId, index=str(index), baseUrl=self._config('baseUrl'), token=self._config('token'))
+            dpf = _DataProductFile(dpRunId=dpRunId, index=str(index), baseUrl=self._config('baseUrl'),
+                                   token=self._config('token'))
             dpf.setComplete()
             fileList.append(dpf.getInfo())
 
         return fileList
-
 
     def _countFilesInProduct(self, runId: int):
         """
@@ -207,7 +210,7 @@ class _OncDelivery(_OncService):
         filters = {'method': 'download', 'token': self._config('token'), 'dpRunId': runId, 'index': 1}
         status = 200
         n = 0
-        
+
         try:
             while status == 200 or status == 202:
                 response = requests.head(url, params=filters, timeout=self._config('timeout'))
@@ -220,22 +223,23 @@ class _OncDelivery(_OncService):
                     # count successful HEAD request
                     filters['index'] += 1
                     n += 1
-        except Exception: raise
-        
+        except Exception:
+            raise
+
         print('   {:d} files available for download'.format(n))
         return n
 
-
-    def _printProductRequest(self, response):
+    @staticmethod
+    def _printProductRequest(response):
         """
         Prints the information from a response given after a data product request
         The request response format might differ depending on the product source (archive or generated on the fly)
         """
         isGenerated = ('estimatedFileSize' in response)
         print('Request Id: {:d}'.format(response['dpRequestId']))
-        
+
         if isGenerated:
-            size = response['estimatedFileSize'] # API returns it as a formatted string
+            size = response['estimatedFileSize']  # API returns it as a formatted string
             print('Estimated File Size: {:s}'.format(size))
             if 'estimatedProcessingTime' in response:
                 print('Estimated Processing Time: {:s}'.format(response['estimatedProcessingTime']))
@@ -243,7 +247,6 @@ class _OncDelivery(_OncService):
             size = _formatSize(response['fileSize'])
             print('File Size: {:s}'.format(size))
             print('Data product is ready for download.')
-
 
     def _estimatePollPeriod(self, response):
         """
@@ -257,18 +260,18 @@ class _OncDelivery(_OncService):
             if len(parts) == 2:
                 unit = parts[1]
                 factor = 1
-                if unit   == 'min':
+                if unit == 'min':
                     factor = 60
                 elif unit == 'hour':
                     factor = 3600
                 total = factor * int(parts[0])
-                self.pollPeriod = max(0.02 * total, 1.0) # poll every 2%
-                
+                self.pollPeriod = max(0.02 * total, 1.0)  # poll every 2%
+
                 # set an upper limit to pollPeriod [sec]
                 self.pollPeriod = min(self.pollPeriod, 10)
-        
 
-    def _printProductOrderStats(self, fileList: list, runInfo: dict):
+    @staticmethod
+    def _printProductOrderStats(fileList: list, runInfo: dict):
         """
         Prints a formatted representation of the total time and size downloaded
         after the product order finishes
@@ -276,17 +279,17 @@ class _OncDelivery(_OncService):
         downloadCount = 0
         downloadTime = 0
         size = 0
-        
+
         for file in fileList:
             size += file["size"]
             if file["downloaded"]:
                 downloadCount += 1
-                downloadTime  += file['fileDownloadTime']
+                downloadTime += file['fileDownloadTime']
 
         # Print run time
         runTime = timedelta(seconds=runInfo['runTime'])
         print('Total run time: {:s}'.format(humanize.naturaldelta(runTime)))
-        
+
         if downloadCount > 0:
             # Print download time
             if downloadTime < 1.0:
@@ -300,24 +303,24 @@ class _OncDelivery(_OncService):
         else:
             print('No files downloaded.')
 
-
-    def _formatResult(self, fileList: list, runInfo: dict):
+    @staticmethod
+    def _formatResult(fileList: list, runInfo: dict):
         size = 0
         downloadTime = 0
         requestCount = runInfo['requestCount']
-        
+
         for file in fileList:
             downloadTime += file['fileDownloadTime']
-            size         += file['size']
+            size += file['size']
             requestCount += file['requestCount']
 
         result = {
             'downloadResults': fileList,
             'stats': {
-                'runTime'     : round(runInfo['runTime'], 3),
+                'runTime': round(runInfo['runTime'], 3),
                 'downloadTime': round(downloadTime, 3),
                 'requestCount': requestCount,
-                'totalSize'   : size
+                'totalSize': size
             }
         }
 

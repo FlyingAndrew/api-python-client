@@ -1,24 +1,19 @@
-from typing import List
-from requests import Response
-from time import time
-from decimal import Decimal
-
 class _PollLog:
     """
     A helper for DataProductFile
     Keeps track of the messages printed in a single product download process
     """
+
     def __init__(self, showInfo: bool):
         """
         @param showInfo same as in parent ONC object
         """
-        self._messages = []       # unique messages returned during the product order
-        self._runStart = 0.0      # {float} timestamp (seconds)
-        self._runEnd   = 0.0
-        self._showInfo = showInfo # flag for writing console messages
+        self._messages = []  # unique messages returned during the product order
+        self._runStart = 0.0  # {float} timestamp (seconds)
+        self._runEnd = 0.0
+        self._showInfo = showInfo  # flag for writing console messages
         self._doPrintFileCount = True
-        self._lastPrintedDot   = False # True after printing a dot (.) without a newline
-
+        self._lastPrintedDot = False  # True after printing a dot (.) without a newline
 
     def logMessage(self, response):
         """
@@ -38,10 +33,10 @@ class _PollLog:
                 msg = response['message']
             else:
                 msg = 'Generating'
-        
+
         if not self._messages or msg != self._messages[-1]:
             # Detect and print change in the file count
-            if origin == 'run': 
+            if origin == 'run':
                 fileCount = response[0]['fileCount']
                 if self._doPrintFileCount and fileCount > 0:
                     self.printInfo('\n   {:d} files generated for this data product'.format(fileCount), True)
@@ -51,7 +46,6 @@ class _PollLog:
             self.printInfo('\n   ' + msg, sameLine=True)
         else:
             self.printInfo('.', sameLine=True)
-
 
     def printInfo(self, msg: str, sameLine: bool = False):
         """
@@ -65,10 +59,9 @@ class _PollLog:
             else:
                 print(msg)
 
-
     def printNewLine(self):
-        '''
+        """
         Prints a line break only if the last message printed was a dot (.)
-        '''
+        """
         if self._lastPrintedDot:
             print('')

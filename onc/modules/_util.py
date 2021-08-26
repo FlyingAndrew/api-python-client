@@ -23,7 +23,7 @@ def saveAsFile(response, filePath: str, fileName: str, overwrite: bool):
             file.write(response.content)
             file.close()
             return 0
-            
+
         except Exception:
             return -1
     else:
@@ -41,7 +41,7 @@ def _formatSize(size: float):
 def _formatDuration(secs: float):
     """
     Returns a formatted time duration string representation of a duration in seconds
-    @param seconds: float
+    @param secs: float
     """
     if secs < 1.0:
         txtDownTime = '{:.3f} seconds'.format(secs)
@@ -64,13 +64,15 @@ def _printErrorMessage(response):
         if len(payload) >= 1:
             for e in payload['errors']:
                 code = e['errorCode']
-                msg  = e['errorMessage']
+                msg = e['errorMessage']
                 parameters = e['parameter']
                 print("   Error {:d}: {:s} (parameter: {})".format(code, msg, parameters))
-    
+
     elif status == 401:
         print('Error 401 - Unauthorized: {:s}'.format(response.url))
-        print('Please check that your Web Services API token is valid. Find your token in your registered profile at https://data.oceannetworks.ca.')
+        print(
+            'Please check that your Web Services API token is valid. Find your token in your registered profile at '
+            'https://data.oceannetworks.ca.')
 
     else:
         msg = '\nError {:d} - {:s}\n'.format(status, response.reason)
