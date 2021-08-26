@@ -15,12 +15,13 @@ class ONC:
     """
 
     def __init__(self, token, production: bool = True, showInfo: bool = False, outPath: str = 'output',
-                 timeout: int = 60):
+                 timeout: int = 60, download_threads: int = 2):
         self.token = re.sub('[^a-zA-Z0-9\-]+', '', token)
         self.showInfo = showInfo
         self.timeout = timeout
         self.baseUrl = 'https://data.oceannetworks.ca/'
         self.outPath = ''
+        self.download_threads = download_threads
 
         # sanitize outPath
         if len(outPath) > 0:

@@ -9,37 +9,40 @@
 # Licence:     None
 # Requires:    requests library - [Python Install]\scripts\pip install requests
 # ------------------------------------------------------------------------------
-
-import requests
 import json
-from xml.etree.ElementTree import fromstring, ElementTree
 import math
-from datetime import datetime
-import os.path
 import sys
+import threading
+import time
 from datetime import datetime
-from datetime import timedelta, date
-from dateutil.relativedelta import relativedelta
+from datetime import timedelta
+
 from dateutil.relativedelta import *
+from tqdm import tqdm
 
 datetimeFormat = '%Y-%m-%dT%H:%M:%S.%f'
 
 '''
 Method to print an error message from an ONC web service call to the console.
 '''
+
+
 def printErrorMessage(response, parameters, showUrl=False, showValue=False):
-    if (response.status_code == 400):
-        if showUrl: print('Error Executing: {}'.format(response.url))
+    if response.status_code == 400:
+        if showUrl:
+            print('Error Executing: {}'.format(response.url))
         payload = json.loads(str(response.content, 'utf-8'))
         if len(payload) >= 1:
             for e in payload['errors']:
                 code = e['errorCode']
-                msg  = e['errorMessage']
+                msg = e['errorMessage']
                 parm = e['parameter']
 
                 matching = [p for p in parm.split(',') if p in parameters.keys()]
                 if len(matching) >= 1:
-                    for p in matching: print("  Error {:d}: {:s}. Parameter '{:s}' with value '{:s}'".format(code, msg, p, parameters[p]))
+                    for p in matching:
+                        print("  Error {:d}: {:s}. Parameter '{:s}' with value '{:s}'".format(code, msg,
+                                                                                              p, parameters[p]))
                 else:
                     print("  '{}' for {}".format(msg, parm))
 
@@ -63,7 +66,7 @@ Method to print a count with a name to the console.
 
 def printCount(count,
                name):
-    if (count != 1):
+    if count != 1:
         print('  {} {}'.format(count, name))
 
 
@@ -105,7 +108,7 @@ Method to return a string representation of a size in bytes.
 
 
 def convertSize(size):
-    if (size == 0):
+    if size == 0:
         return '0 KB'
     sizeUnits = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
     i = int(math.floor(math.log(size, 1024)))
@@ -130,7 +133,7 @@ def toBytes(str):
             return None
 
         sName = str.split(' ')[1]
-        if (sName in sizeUnits):
+        if sName in sizeUnits:
             indx = sizeUnits.index(sName)
             p = math.pow(1024, indx)
             iBytes = int(p * nSize)
@@ -156,7 +159,7 @@ def toSeconds(str):
             return None
 
         sName = str.split(' ')[1]
-        if (sName in timeUnits):
+        if sName in timeUnits:
             indx = timeUnits.index(sName)
             p = math.pow(60, indx)
             seconds = int(p * iSize)
@@ -167,11 +170,14 @@ def toSeconds(str):
 
 
 '''
-Method to print a message to the console without a line break. This allows for writing subsequent messages to the same line, such as Downloading.....
+Method to print a message to the console without a line break. This allows for writing subsequent messages to the same 
+line, such as Downloading.....
 '''
+
+
 def printWithEnd(message,
                  separator=None):
-    if (separator):
+    if separator:
         print(message, end='', sep=separator)
     else:
         print(message, end='')
@@ -233,7 +239,7 @@ Utility Method to split a date range into a list of day date range objects with 
 def daterangeByDay(startDate, endDate):
     dtStart = datetime(startDate.year, startDate.month, startDate.day)
     dtEnd = dtStart + timedelta(days=1)
-    if (dtEnd > endDate):
+    if dtEnd > endDate:
         yield {'begin': startDate.strftime(datetimeFormat)[:-3] + 'Z',
                'end': endDate.strftime(datetimeFormat)[:-3] + 'Z'}
     else:
@@ -242,7 +248,7 @@ def daterangeByDay(startDate, endDate):
         while True:
             dtStart = dtEnd
             dtEnd = dtStart + relativedelta(days=1)
-            if (dtEnd > endDate):
+            if dtEnd > endDate:
                 yield {'begin': dtStart.strftime(datetimeFormat)[:-3] + 'Z',
                        'end': endDate.strftime(datetimeFormat)[:-3] + 'Z'}
                 break
@@ -252,7 +258,8 @@ def daterangeByDay(startDate, endDate):
 
 
 '''
-Utility Method to split a date range into a list of week date range objects with a begin and end values, with the ranges begining on a specific day of the week
+Utility Method to split a date range into a list of week date range objects with a begin and end values, with the ranges
+ begining on a specific day of the week
 '''
 
 
@@ -261,7 +268,7 @@ def daterangeByWeek(startDate, endDate, dayOfWeek=SU):  # MO TU, WE, TH, FR, SA,
 
     dtStart = datetime(newStart.year, newStart.month, newStart.day)
     dtEnd = dtStart + relativedelta(weeks=1)
-    if (dtEnd > endDate):
+    if dtEnd > endDate:
         yield {'begin': startDate.strftime(datetimeFormat)[:-3] + 'Z',
                'end': endDate.strftime(datetimeFormat)[:-3] + 'Z'}
     else:
@@ -270,7 +277,7 @@ def daterangeByWeek(startDate, endDate, dayOfWeek=SU):  # MO TU, WE, TH, FR, SA,
         while True:
             dtStart = dtEnd
             dtEnd = dtStart + relativedelta(weeks=1)
-            if (dtEnd > endDate):
+            if dtEnd > endDate:
                 yield {'begin': dtStart.strftime(datetimeFormat)[:-3] + 'Z',
                        'end': endDate.strftime(datetimeFormat)[:-3] + 'Z'}
                 break
@@ -287,7 +294,7 @@ Utility Method to split a date range into a list of month date range objects wit
 def daterangeByMonth(startDate, endDate):
     dtStart = datetime(startDate.year, startDate.month, 1)
     dtEnd = dtStart + relativedelta(months=1)
-    if (dtEnd > endDate):
+    if dtEnd > endDate:
         yield {'begin': startDate.strftime(datetimeFormat)[:-3] + 'Z',
                'end': endDate.strftime(datetimeFormat)[:-3] + 'Z'}
     else:
@@ -296,7 +303,7 @@ def daterangeByMonth(startDate, endDate):
         while True:
             dtStart = dtEnd
             dtEnd = dtStart + relativedelta(months=1)
-            if (dtEnd > endDate):
+            if dtEnd > endDate:
                 yield {'begin': dtStart.strftime(datetimeFormat)[:-3] + 'Z',
                        'end': endDate.strftime(datetimeFormat)[:-3] + 'Z'}
                 break
@@ -341,3 +348,78 @@ def copyFieldIfExists(fromDic, toDic, keys):
     for key in keys:
         if key in fromDic:
             toDic[key] = fromDic[key]
+
+
+class ShareJobThreads:
+    def __init__(self, thread_n=3):
+        """ A Class which spreads a iterable job defined by a function f to n threads. It is basically a Wrapper for:
+        for i in iterable:
+            f(i)
+
+        The above example translates to:
+        sjt = ShareJobThreads(4)  # for 4 threads
+        sjt.do(f, iterable)
+        """
+        self.thread_n = thread_n
+        self.lock = threading.Lock()
+        self.thread_bar = None
+        self.active = False
+        self.event = threading.Event()
+
+        self.threads = None  # the worker threads
+        self.iterable = None  # the iterable
+        self.i = None  # the actual index
+        self.f = None  # the function
+
+    def do(self, f, iterable, ):
+        self.active = True
+        self.iterable = iterable
+        self.i = 0
+        self.f = f
+
+        self.threads = []
+
+        for i in range(self.thread_n):
+            thread_i = threading.Thread(target=self.worker)
+            thread_i.start()
+            self.threads.append(thread_i)
+
+        self.thread_bar = threading.Thread(target=self.update_bar)
+        self.thread_bar.start()
+        self.thread_bar.join()
+
+    def update_bar(self, ):
+        last_i = 0
+
+        with tqdm(self.iterable,
+                  file=sys.stdout,
+                  unit='file') as bar:
+            while any([i.is_alive() for i in self.threads]) or last_i != self.i:
+                with self.lock:
+                    # print(self.i, self.active)
+                    if last_i != self.i:
+                        for i in range(self.i - last_i):
+                            bar.set_postfix({'i': self.iterable[self.i - 1 - i]})
+                            bar.update()
+
+                        last_i = self.i
+                time.sleep(0.1)  # delay a bit
+
+    def stop(self, ):
+        self.active = False
+
+    def worker(self, ):
+        iterable_i = True
+        while self.active and iterable_i:
+            iterable_i = self.get_next()
+            if iterable_i is not False:
+                self.f(iterable_i)
+
+    def get_next(self, ):
+        with self.lock:
+            if len(self.iterable) > self.i:
+                iterable_i = self.iterable[self.i]
+                self.i += 1
+                return iterable_i
+            else:
+                return False

@@ -1,12 +1,14 @@
-from ._OncService import _OncService
-from ._MultiPage import _MultiPage
-import requests
-import json
-import humanize
 import os
+import threading
 import time
 
+import humanize
+import requests
+
+from ._MultiPage import _MultiPage
+from ._OncService import _OncService
 from ._util import saveAsFile, _printErrorMessage, _formatDuration
+from ..util.util import ShareJobThreads
 
 
 class _OncArchive(_OncService):
@@ -19,8 +21,8 @@ class _OncArchive(_OncService):
 
     def getListByLocation(self, filters: dict = None, allPages: bool = False):
         """
-        Get a list of files for a given location code and device category code, and filtered by others optional parameters.
-        if locationCode or deviceCategoryCode are missing, we suppose they are in the filters
+        Get a list of files for a given location code and device category code, and filtered by others optional
+        parameters. If locationCode or deviceCategoryCode are missing, we suppose they are in the filters
         """
         try:
             return self._getList(filters, by='location', allPages=allPages)
@@ -29,8 +31,8 @@ class _OncArchive(_OncService):
 
     def getListByDevice(self, filters: dict = None, allPages: bool = False):
         """
-        Get a list of files available in Oceans 2.0 Archiving System for a given device code. The list of filenames can be filtered by time range.
-        if deviceCode is missing, we suppose it is in the filters
+        Get a list of files available in Oceans 2.0 Archiving System for a given device code. The list of filenames can
+        be filtered by time range. If deviceCode is missing, we suppose it is in the filters
         """
         try:
             return self._getList(filters, by='device', allPages=allPages)
@@ -85,72 +87,49 @@ class _OncArchive(_OncService):
         }
 
     def getDirectFiles(self, filters: dict, overwrite: bool = False, allPages: bool = False):
-        '''
-        Method to download files from the archivefiles service 
-        see https://wiki.oceannetworks.ca/display/help/archivefiles for usage and available filters
-        '''
+        """
+         Method to download files from the archivefiles service
+         see https://wiki.oceannetworks.ca/display/help/archivefiles for usage and available filters
+         """
         # make sure we only get a simple list of files
         if 'returnOptions' in filters:
             del filters['returnOptions']
 
         # Get a list of files
         try:
-            if 'locationCode' in filters and 'deviceCategoryCode' in filters:
+            if 'files' in filters:
+                dataRows = filters['files']
+            elif 'locationCode' in filters and 'deviceCategoryCode' in filters:
                 dataRows = self.getListByLocation(filters=filters, allPages=allPages)
             elif 'deviceCode' in filters:
                 dataRows = self.getListByDevice(filters=filters, allPages=allPages)
             else:
                 raise Exception(
-                    'getDirectFiles filters require either a combination of "locationCode" and "deviceCategoryCode", or a "deviceCode" present.')
+                    'getDirectFiles filters require either a combination of "locationCode" and "deviceCategoryCode",'
+                    'or a "deviceCode" or "files" (see _OncArchiveDownloader.download_file) present.')
         except Exception:
             raise
 
-        n = len(dataRows['files'])
-        print('Obtained a list of {:d} files to download.'.format(n))
+        downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
 
-        # Download the files obtained
-        tries = 1
-        successes = 0
-        size = 0
-        time = 0
-        downInfos = []
-        for filename in dataRows['files']:
-            # only download if file doesn't exist (or overwrite is True)
-            outPath = self._config('outPath')
-            filePath = '{:s}/{:s}'.format(outPath, filename)
-            fileExists = os.path.exists(filePath)
+        if dataRows['files']:
+            if not os.path.exists(self._config('outPath')):
+                os.mkdir(self._config('outPath'))
+            share_job_threads = ShareJobThreads(self._config('download_threads'))
+            share_job_threads.do(downloader.download_file, dataRows['files'])
 
-            if (not fileExists) or (fileExists and overwrite):
-                print('   ({:d} of {:d}) Downloading file: "{:s}"'.format(tries, n, filename))
-                try:
-                    downInfo = self.getFile(filename, overwrite)
-                    size += downInfo['size']
-                    time += downInfo['downloadTime']
-                    downInfos.append(downInfo)
-                    successes += 1
-                except Exception:
-                    raise
-                tries += 1
-            else:
-                print('   Skipping "{:s}": File already exists.'.format(filename))
-                downInfo = {
-                    'url': self._getDownloadUrl(filename),
-                    'status': 'skipped',
-                    'size': 0,
-                    'downloadTime': 0,
-                    'file': filename
-                }
-                downInfos.append(downInfo)
-
-        print('{:d} files ({:s}) downloaded'.format(successes, humanize.naturalsize(size)))
-        print('Total Download Time: {:s}'.format(_formatDuration(time)))
+        print('Downloaded - Directory: {:s}; Files: {:d}; Size: {:s}; Time: {:s}'.format(
+            self._config('outPath'),
+            downloader.successes,
+            humanize.naturalsize(downloader.size),
+            _formatDuration(downloader.time)))
 
         return {
-            'downloadResults': downInfos,
+            'downloadResults': downloader.downInfos,
             'stats': {
-                'totalSize': size,
-                'downloadTime': time,
-                'fileCount': successes
+                'totalSize': downloader.size,
+                'downloadTime': downloader.time,
+                'fileCount': downloader.successes
             }
         }
 
@@ -188,12 +167,13 @@ class _OncArchive(_OncService):
         except Exception:
             raise
 
-    def _filterByExtension(self, results: dict, extension: str):
-        '''
+    @staticmethod
+    def _filterByExtension(results: dict, extension: str):
+        """
         Filter results to only those where filenames end with the extension
         If extension is None, won't do anything
         Returns the filtered list
-        '''
+        """
         if extension is None:
             return results
 
@@ -218,3 +198,71 @@ class _OncArchive(_OncService):
         results['files'] = filtered
 
         return results
+
+
+# Download the files obtained
+class _OncArchiveDownloader(_OncArchive):
+    def __init__(self, parent: object, overwrite: bool = False):
+        super().__init__(parent)
+        self.overwrite = overwrite
+        self.tries = 1
+        self.successes = 0
+        self.size = 0
+        self.time = 0
+
+        self.downInfos = []
+        self.info_lock = threading.Lock()
+
+    def download_file(self, download_parameters):
+        """
+        Downloads a file in a thread safe environment, i.e. to use it with ShareJobThreads.
+        PARAMETERS
+        ----------
+        download_parameters: str, list, tuple, or dict
+            download_parameters can be either:
+                1. a str, which is interpreted as the 'filename'. For the 'outPath' it takes the default path.
+                2. a list or tuple, with len = 2, the first entry is the 'filename' and the second the 'outPath'
+                3. a dict, with at least the key 'filename'. 'outPath' is optional, and if not set its the default path.
+        """
+        if isinstance(download_parameters, str):
+            filename = download_parameters
+            outPath = self._config('outPath')
+        elif isinstance(download_parameters, (list, tuple)):
+            filename = download_parameters[0]
+            outPath = download_parameters[1]
+        elif type(download_parameters) is dict:
+            filename = download_parameters['filename']
+            if 'outPath' in download_parameters:
+                outPath = download_parameters['outPath']
+            else:
+                outPath = self._config('outPath')
+        else:
+            raise ValueError(f'download_parameters as to be out of, str, tuple: (str,str), list: [str, str],'
+                             f'or dict: {"filename": str, ["outPath": str]}, got: {download_parameters}')
+
+        filePath = os.path.join(outPath, filename)
+        fileExists = os.path.exists(filePath)
+
+        if (not fileExists) or (fileExists and self.overwrite):
+            # print('   ({:d} of {:d}) Downloading file: "{:s}"'.format(tries, n, filename))
+            try:
+                downInfo = self.getFile(filename, overwrite=self.overwrite, outPath=outPath)
+                with self.info_lock:
+                    self.size += downInfo['size']
+                    self.time += downInfo['downloadTime']
+                    self.downInfos.append(downInfo)
+                    self.successes += 1
+            except Exception:
+                raise
+            self.tries += 1
+        else:
+            # print('   Skipping "{:s}": File already exists.'.format(filename))
+            downInfo = {
+                'url': self._getDownloadUrl(filename),
+                'status': 'skipped',
+                'size': 0,
+                'downloadTime': 0,
+                'file': filename
+            }
+            with self.info_lock:
+                self.downInfos.append(downInfo)
