@@ -97,7 +97,7 @@ class _OncArchive(_OncService):
         # Get a list of files
         try:
             if 'files' in filters:
-                dataRows = filters['files']
+                dataRows = filters
             elif 'locationCode' in filters and 'deviceCategoryCode' in filters:
                 dataRows = self.getListByLocation(filters=filters, allPages=allPages)
             elif 'deviceCode' in filters:
@@ -112,8 +112,8 @@ class _OncArchive(_OncService):
         downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
 
         if dataRows['files']:
-            if not os.path.exists(self._config('outPath')):
-                os.mkdir(self._config('outPath'))
+            # if not os.path.exists(self._config('outPath')):
+            #     os.mkdir(self._config('outPath'))
             share_job_threads = ShareJobThreads(self._config('download_threads'))
             share_job_threads.do(downloader.download_file, dataRows['files'])
 

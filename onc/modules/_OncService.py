@@ -11,7 +11,10 @@ class _OncService:
     """
 
     def __init__(self, parent: object):
-        self.parent = weakref.ref(parent)
+        if isinstance(parent, weakref.ref):
+            self.parent = parent
+        else:
+            self.parent = weakref.ref(parent)
 
     def _doRequest(self, url: str, filters: dict = None, getTime=False):
         """
