@@ -7,8 +7,7 @@ import requests
 
 from ._MultiPage import _MultiPage
 from ._OncService import _OncService
-from ._util import saveAsFile, _printErrorMessage, _formatDuration
-from ..util.util import ShareJobThreads
+from ._util import saveAsFile, _printErrorMessage, _formatDuration, ShareJobThreads
 
 
 class _OncArchive(_OncService):
