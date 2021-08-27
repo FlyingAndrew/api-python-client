@@ -36,8 +36,9 @@ pip install onc
 For complete documentation and examples, visit https://wiki.oceannetworks.ca/display/O2A/Oceans+2.0+API+Home
 
 
-### Maintainers
+## Maintainers
 
 * Current maintainer: [Dany Cabrera](dcabrera@oceannetworks.ca)
+* Current fork-maintainer: [Kilian Holzapfel](kilian.holzapfel@tum.de)
 * Previous maintainers: [Allan Rempel](agrempel@uvic.ca), [Ryan Ross](ryanross@uvic.ca)
 
