@@ -1,7 +1,7 @@
 import setuptools
 
 # Modify this version before publishing a new release
-buildVersion = "2.3.5"
+buildVersion = "2.3.6"
 
 print('setup.py has build version: ' + buildVersion + '. Make sure this is the version you want to upload.')
 
@@ -13,22 +13,22 @@ setuptools.setup(
     version=buildVersion,
 
     # Original author, emails go to generic data team address
-    author="ONC Data Team",
+    author="ONC Data Team / TUM",
     author_email="data@oceannetworks.ca",
-    
+
     # Current maintainer here, all previous maintainers to be acknowledged in README.md
-    maintainer="Dany Cabrera",
-    maintainer_email="dcabrera@uvic.ca",
+    maintainer="Kilian Holzapfel",
+    maintainer_email="kilian.holzapfel@tum.de",
 
     description="Ocean 2.0 API Python Client Library",
     license="Apache 2.0",
     keywords="ONC Ocean API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-	url='https://wiki.oceannetworks.ca/display/O2A/Python+Client+Library',
-    
+    url='https://wiki.oceannetworks.ca/display/O2A/Python+Client+Library',
+
     packages=setuptools.find_packages(),
-	install_requires=[
+    install_requires=[
         'requests',
         'python-dateutil',
         'numpy',
