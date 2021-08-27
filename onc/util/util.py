@@ -344,3 +344,25 @@ def copyFieldIfExists(fromDic, toDic, keys):
     for key in keys:
         if key in fromDic:
             toDic[key] = fromDic[key]
+
+
+def add_docs(org_func):
+    """A decorator which forwards a docstring from a function to another, i.e. at overloading a function.
+    Usage:
+    def function():
+        '''Docstring'''
+        ...
+
+    @add_docs(function)
+    def function_2():
+        '''This docstring is overwritten/ignored!'''
+        ...
+
+    help(function)
+    -> Docstring
+    """
+    def desc(func):
+        func.__doc__ = org_func.__doc__
+        return func
+
+    return desc
