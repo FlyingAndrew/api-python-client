@@ -98,7 +98,7 @@ def _messageForError(status: int):
 
 
 class ShareJobThreads:
-    def __init__(self, thread_n=3):
+    def __init__(self, thread_n=3, fmt=None):
         """ A Class which spreads a iterable job defined by a function f to n threads. It is basically a Wrapper for:
         for i in iterable:
             f(i)
@@ -117,6 +117,9 @@ class ShareJobThreads:
         self.iterable = None  # the iterable
         self.i = None  # the actual index
         self.f = None  # the function
+
+        # formatter for the bar, if not None, the iterable has to be a dict, i.e. {'a':1, 'b':2}, and the fmt: '{a}-{b}'
+        self.fmt = fmt  # formatter for the bar
 
     def do(self, f, iterable, ):
         self.active = True
@@ -146,7 +149,11 @@ class ShareJobThreads:
                     # print(self.i, self.active)
                     if last_i != self.i:
                         for i in range(self.i - last_i):
-                            bar.set_postfix({'i': self.iterable[self.i - 1 - i]})
+                            str_i = self.iterable[self.i - 1 - i]
+                            if self.fmt is not None and isinstance(self.iterable[self.i - 1 - i], dict):
+                                str_i = self.fmt.format(**self.iterable[self.i - 1 - i])
+
+                            bar.set_postfix({'i': str_i})
                             bar.update()
 
                         last_i = self.i
