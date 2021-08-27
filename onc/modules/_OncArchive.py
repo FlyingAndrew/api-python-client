@@ -130,6 +130,7 @@ class _OncArchive(_OncService):
         downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
 
         if dataRows['files']:
+            # check for exiting files and pop those
             if not overwrite:
                 exiting_files = []
                 for i, file_i in enumerate(dataRows['files'].copy()):
@@ -150,11 +151,13 @@ class _OncArchive(_OncService):
                 if exiting_files:
                     print(f'Skipping {len(exiting_files)} files.')
 
-            if download_threads is None:
-                download_threads = self._config('download_threads')
+            # check again if there a files to download, maybe they all exist already and overwrite=False
+            if dataRows['files']:
+                if download_threads is None:
+                    download_threads = self._config('download_threads')
 
-            share_job_threads = ShareJobThreads(download_threads, fmt='{filename}')
-            share_job_threads.do(downloader.download_file, dataRows['files'])
+                share_job_threads = ShareJobThreads(download_threads, fmt='{filename}')
+                share_job_threads.do(downloader.download_file, dataRows['files'])
 
         print('Downloaded - Directory: {:s}; Files: {:d}; Size: {:s}; Time: {:s}'.format(
             self._config('outPath'),
