@@ -85,7 +85,8 @@ class _OncArchive(_OncService):
             'file': filename
         }
 
-    def getDirectFiles(self, filters_or_result: dict, overwrite: bool = False, allPages: bool = False):
+    def getDirectFiles(self, filters_or_result: dict, overwrite: bool = False, allPages: bool = False,
+                       download_threads: int = None):
         """
          Method to download files from the archivefiles service
          see https://wiki.oceannetworks.ca/display/help/archivefiles for usage and available filters for
@@ -98,6 +99,13 @@ class _OncArchive(_OncService):
             The 'result'-dict has to be in the shape:
             {'files': [{'filename': file_a}, {'filename': file_b, 'outPath': dir_b}, ...]}. This means, for each file
             a separated 'outPath' can be defined. If not, the default 'outPath' is used.
+        overwrite: bool, optional
+            If True, it will overwrite existing files. Default False, which skips exiting files.
+        allPages: bool, optional
+            See `getListByLocation` or `getListByDevice`
+        download_threads: int, optional
+            Defines the number of thread for the download. If None (default) it uses the 'download_threads' form the
+            ONC initialisation.
          """
         # make sure we only get a simple list of files
         if 'returnOptions' in filters_or_result:
@@ -113,17 +121,18 @@ class _OncArchive(_OncService):
                 dataRows = self.getListByDevice(filters=filters_or_result, allPages=allPages)
             else:
                 raise Exception(
-                    'getDirectFiles filters_or_result require either a combination of "locationCode" and "deviceCategoryCode",'
-                    'or a "deviceCode" or "files" (see _OncArchiveDownloader.download_file) present.')
+                    'getDirectFiles filters_or_result require either a combination of "locationCode" and '
+                    '"deviceCategoryCode", or a "deviceCode" or "files" '
+                    '(see _OncArchiveDownloader.download_file) present.')
         except Exception:
             raise
 
         downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
 
         if dataRows['files']:
-            # if not os.path.exists(self._config('outPath')):
-            #     os.mkdir(self._config('outPath'))
-            share_job_threads = ShareJobThreads(self._config('download_threads'))
+            if download_threads is None:
+                download_threads = self._config('download_threads')
+            share_job_threads = ShareJobThreads(download_threads)
             share_job_threads.do(downloader.download_file, dataRows['files'])
 
         print('Downloaded - Directory: {:s}; Files: {:d}; Size: {:s}; Time: {:s}'.format(
