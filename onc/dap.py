@@ -10,17 +10,17 @@
 # Requires:    requests library - [Python Install]\scripts\pip install requests
 #-------------------------------------------------------------------------------
 
-import requests
 import json
-import math
-from datetime import datetime
 import os.path
 import sys
 from contextlib import closing
+
+import requests
+
 if sys.version_info.major == 2:
-    from V2 import util
+    pass
 else:
-    from onc.V3 import util
+    pass
     
 #from html.parser import HTMLParser
 
