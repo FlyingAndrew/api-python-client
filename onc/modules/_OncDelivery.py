@@ -143,7 +143,7 @@ class _OncDelivery(_OncService):
 
         dpf = _DataProductFile(runId, str(index), baseUrl, token)
 
-        # loop thorugh file indexes
+        # loop thorough file indexes
         while doLoop:
             # stop after too many retries
             try:

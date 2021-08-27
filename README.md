@@ -16,9 +16,15 @@ New features and updates are:
 
 ## Installation
 You can use one of the following two examples to install the fork:
-- clone the repository and `pip install -e dir/to/repro` - recommended for development. Make sure to install the requirements.
+- clone the repository and:
+  ```bash
+  pip install -e dir/to/repro
+  ```
+  Recommended for development. Make sure to install the requirements, as i.e. a `git pull` will be enough to import the updated code.
 - Uninstall an existing installation (pip only compares the version number and not the code) and install it from the repository:
-  `pip uninstall onc; pip install -U git+git://github.com/FlyingAndrew/api-python-client.git@master`
+  ```bash
+  pip uninstall -y onc;
+  pip install -U git+git://github.com/FlyingAndrew/api-python-client.git@master```
 # Original Readme
 ## ONC API Python Client Library
 
