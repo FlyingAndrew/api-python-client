@@ -85,26 +85,35 @@ class _OncArchive(_OncService):
             'file': filename
         }
 
-    def getDirectFiles(self, filters: dict, overwrite: bool = False, allPages: bool = False):
+    def getDirectFiles(self, filters_or_result: dict, overwrite: bool = False, allPages: bool = False):
         """
          Method to download files from the archivefiles service
-         see https://wiki.oceannetworks.ca/display/help/archivefiles for usage and available filters
+         see https://wiki.oceannetworks.ca/display/help/archivefiles for usage and available filters for
+         'filters_or_result'.
+         PARAMETER
+         ---------
+         filters_or_result: dict,
+            can be either a 'filters'-dict following https://wiki.oceannetworks.ca/display/help/archivefiles
+            or a 'result'-dict which is returned i.e. by 'getListByDevice', 'getListByLocation', or 'getList'.
+            The 'result'-dict has to be in the shape:
+            {'files': [{'filename': file_a}, {'filename': file_b, 'outPath': dir_b}, ...]}. This means, for each file
+            a separated 'outPath' can be defined. If not, the default 'outPath' is used.
          """
         # make sure we only get a simple list of files
-        if 'returnOptions' in filters:
-            del filters['returnOptions']
+        if 'returnOptions' in filters_or_result:
+            del filters_or_result['returnOptions']
 
         # Get a list of files
         try:
-            if 'files' in filters:
-                dataRows = filters
-            elif 'locationCode' in filters and 'deviceCategoryCode' in filters:
-                dataRows = self.getListByLocation(filters=filters, allPages=allPages)
-            elif 'deviceCode' in filters:
-                dataRows = self.getListByDevice(filters=filters, allPages=allPages)
+            if 'files' in filters_or_result:
+                dataRows = filters_or_result
+            elif 'locationCode' in filters_or_result and 'deviceCategoryCode' in filters_or_result:
+                dataRows = self.getListByLocation(filters=filters_or_result, allPages=allPages)
+            elif 'deviceCode' in filters_or_result:
+                dataRows = self.getListByDevice(filters=filters_or_result, allPages=allPages)
             else:
                 raise Exception(
-                    'getDirectFiles filters require either a combination of "locationCode" and "deviceCategoryCode",'
+                    'getDirectFiles filters_or_result require either a combination of "locationCode" and "deviceCategoryCode",'
                     'or a "deviceCode" or "files" (see _OncArchiveDownloader.download_file) present.')
         except Exception:
             raise

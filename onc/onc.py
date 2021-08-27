@@ -135,5 +135,5 @@ class ONC:
     def getFile(self, filename: str = '', overwrite: bool = False, outPath: str = None):
         return self.archive.getFile(filename, overwrite, outPath)
 
-    def getDirectFiles(self, filters: dict = None, overwrite: bool = False, allPages: bool = False):
-        return self.archive.getDirectFiles(filters, overwrite, allPages)
+    def getDirectFiles(self, filters_or_result: dict = None, overwrite: bool = False, allPages: bool = False):
+        return self.archive.getDirectFiles(filters_or_result, overwrite, allPages)
