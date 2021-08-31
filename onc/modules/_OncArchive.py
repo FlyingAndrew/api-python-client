@@ -128,7 +128,7 @@ class _OncArchive(_OncService):
             raise
 
         downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
-        start, elapsed = 0, 0
+        start, elapsed = 0, 0  # to measure download time
 
         if dataRows['files']:
             # check for exiting files and pop those
@@ -163,11 +163,14 @@ class _OncArchive(_OncService):
 
                 elapsed = time.time() - start
 
-        print('Downloaded - Directory: {:s}; Files: {:d}; Size: {:s}; Time: {:s}'.format(
+        print('Downloaded - Directory: {:s}; Files: {:d}; Size: {:s}; Time: {:s}; Speed: {:s}/s'.format(
             self._config('outPath'),
             downloader.successes,
             humanize.naturalsize(downloader.size),
-            _formatDuration(elapsed)))
+            _formatDuration(elapsed),
+            humanize.naturalsize(downloader.size/elapsed),
+            )
+        )
 
         return {
             'downloadResults': downloader.downInfos,
