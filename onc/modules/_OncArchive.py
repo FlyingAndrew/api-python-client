@@ -128,7 +128,7 @@ class _OncArchive(_OncService):
             raise
 
         downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
-        start, elapsed = 0, 0  # to measure download time
+        start, elapsed, download_speed = 0, 0, 0  # to measure download time
 
         if dataRows['files']:
             # check for exiting files and pop those
@@ -162,13 +162,14 @@ class _OncArchive(_OncService):
                 share_job_threads.do(downloader.download_file, dataRows['files'])
 
                 elapsed = time.time() - start
+                download_speed = downloader.size/elapsed
 
         print('Downloaded - Directory: {:s}; Files: {:d}; Size: {:s}; Time: {:s}; Speed: {:s}/s'.format(
             self._config('outPath'),
             downloader.successes,
             humanize.naturalsize(downloader.size),
             _formatDuration(elapsed),
-            humanize.naturalsize(downloader.size/elapsed),
+            humanize.naturalsize(download_speed),
             )
         )
 
