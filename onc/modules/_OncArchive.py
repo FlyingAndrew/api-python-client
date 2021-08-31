@@ -128,6 +128,7 @@ class _OncArchive(_OncService):
             raise
 
         downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
+        start, elapsed = 0, 0
 
         if dataRows['files']:
             # check for exiting files and pop those
@@ -153,23 +154,26 @@ class _OncArchive(_OncService):
 
             # check again if there a files to download, maybe they all exist already and overwrite=False
             if dataRows['files']:
+                start = time.time()
                 if download_threads is None:
                     download_threads = self._config('download_threads')
 
                 share_job_threads = ShareJobThreads(download_threads, fmt='{filename}')
                 share_job_threads.do(downloader.download_file, dataRows['files'])
 
+                elapsed = time.time() - start
+
         print('Downloaded - Directory: {:s}; Files: {:d}; Size: {:s}; Time: {:s}'.format(
             self._config('outPath'),
             downloader.successes,
             humanize.naturalsize(downloader.size),
-            _formatDuration(downloader.time)))
+            _formatDuration(elapsed)))
 
         return {
             'downloadResults': downloader.downInfos,
             'stats': {
                 'totalSize': downloader.size,
-                'downloadTime': downloader.time,
+                'downloadTime': elapsed,
                 'fileCount': downloader.successes
             }
         }
