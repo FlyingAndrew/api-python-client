@@ -4,6 +4,7 @@ import time
 
 import humanize
 import requests
+import pandas
 
 from ._MultiPage import _MultiPage
 from ._OncService import _OncService
@@ -94,11 +95,13 @@ class _OncArchive(_OncService):
          PARAMETER
          ---------
          filters_or_result: dict,
-            can be either a 'filters'-dict following https://wiki.oceannetworks.ca/display/help/archivefiles
-            or a 'result'-dict which is returned i.e. by 'getListByDevice', 'getListByLocation', or 'getList'.
-            The 'result'-dict has to be in the shape:
+            can one of:
+            - 'filters'-dict following https://wiki.oceannetworks.ca/display/help/archivefiles
+            - 'result'-dict which is returned i.e. by 'getListByDevice', 'getListByLocation', or 'getList'. The
+            'result'-dict has to be in the shape:
             {'files': [{'filename': file_a}, {'filename': file_b, 'outPath': dir_b}, ...]}. This means, for each file
             a separated 'outPath' can be defined. If not, the default 'outPath' is used.
+            - pandas.DataFrame with column 'filename' and optional 'outPath'
         overwrite: bool, optional
             If True, it will overwrite existing files. Default False, which skips exiting files.
         allPages: bool, optional
@@ -112,20 +115,25 @@ class _OncArchive(_OncService):
             del filters_or_result['returnOptions']
 
         # Get a list of files
-        try:
-            if 'files' in filters_or_result:
-                dataRows = filters_or_result
-            elif 'locationCode' in filters_or_result and 'deviceCategoryCode' in filters_or_result:
-                dataRows = self.getListByLocation(filters=filters_or_result, allPages=allPages)
-            elif 'deviceCode' in filters_or_result:
-                dataRows = self.getListByDevice(filters=filters_or_result, allPages=allPages)
+        # try:
+        if 'files' in filters_or_result:
+            dataRows = filters_or_result
+        elif isinstance(filters_or_result, pandas.DataFrame):
+            if 'outPath' in filters_or_result:
+                dataRows = {'files': filters_or_result[['filename', 'outPath']].to_dict(orient='records')}
             else:
-                raise Exception(
-                    'getDirectFiles filters_or_result require either a combination of "locationCode" and '
-                    '"deviceCategoryCode", or a "deviceCode" or "files" '
-                    '(see _OncArchiveDownloader.download_file) present.')
-        except Exception:
-            raise
+                dataRows = {'files': filters_or_result[['filename']].to_dict(orient='records')}
+        elif 'locationCode' in filters_or_result and 'deviceCategoryCode' in filters_or_result:
+            dataRows = self.getListByLocation(filters=filters_or_result, allPages=allPages)
+        elif 'deviceCode' in filters_or_result:
+            dataRows = self.getListByDevice(filters=filters_or_result, allPages=allPages)
+        else:
+            raise Exception(
+                'getDirectFiles filters_or_result require either a combination of "locationCode" and '
+                '"deviceCategoryCode", or a "deviceCode" or "files" '
+                '(see _OncArchiveDownloader.download_file) present.')
+        # except Exception:
+        #     raise
 
         downloader = _OncArchiveDownloader(parent=self.parent, overwrite=overwrite)
         start, elapsed, download_speed = 0, 0, 0  # to measure download time
