@@ -16,15 +16,24 @@ New features and updates are:
 
 ## Installation
 You can use one of the following two examples to install the fork:
-- clone the repository and:
-  ```bash
-  pip install -e dir/to/repro
-  ```
-  Recommended for development. Make sure to install the requirements, as i.e. a `git pull` will be enough to import the updated code.
+- Recommended for development. Clone the repository and install it with `-e`. Therefore, a `git pull` will be enough to import the updated code.
+  Depending on your Python installation adopt python3/pip3 to python/pip, however python3 is required. And run:
+```bash
+mkdir /path/to/repros  # adopted the path, be aware that git clone creates a directory with the repro name
+cd /path/to/repros # enter the directory
+
+git clone https://github.com/FlyingAndrew/api-python-client.git  # downloads the repro
+cd api-python-client  # enter the repository directory
+
+python3 -m build  # This will create the files located in the folder `.egg-info`
+pip3 install -r requirements.txt  # install the required python packages
+pip3 install -U --user -e .  # install the package in developer mode.
+```
 - Uninstall an existing installation (pip only compares the version number and not the code) and install it from the repository:
-  ```bash
-  pip uninstall -y onc;
-  pip install -U git+git://github.com/FlyingAndrew/api-python-client.git@master```
+```bash
+pip uninstall -y onc;
+pip install -U git+git://github.com/FlyingAndrew/api-python-client.git@master
+```
 # Original Readme
 ## ONC API Python Client Library
 
