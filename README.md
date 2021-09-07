@@ -1,26 +1,31 @@
 # This is a fork of the original ONC API
 New features and updates are:
-- `onc.getDirectFiles()`:
-    - parallelized (threaded) download within `onc.getDirectFiles(..., download_threads=2)`. The number of threads can be 
-  either set at the function call oor the initialisation (higher priority), or
-  `ONC(..., download_threads: int = 2)` defines the number of threads.
+- At `onc.getDirectFiles()`:
+    - parallelized (threaded) download to speed up the download.
+      The number of threads can be set at:
+        - the function call `onc.getDirectFiles(..., download_threads=2)` (higher priority)
+        - the initialisation of ONC `onc=ONC(..., download_threads: int = 2)`
+      
     - takes now `filters_or_results`, which makes it possible to do changes or exclude files of the results from 
   `getListByDevice`, `getListByLocation`, or `getList`.
-    - When working with results, the `outPath` can be set per filename. 
+    - When working with results, the `outPath` can be set per filename.
+    - check out the [basic_filter_and_download.py](/examples/basic_filter_and_download.py) example
+  
 - optimized imports, syntax and code style
-- forwarded Docstrings to overloaded function (`_OncRealTime.getDirectByLocation` -> `ONC.getDirectByLocation`)
+- forwarded doc-strings to overloaded function with [`@add_docs`](/onc/util/util.py), e.g., `_OncRealTime.getDirectByLocation` -> `ONC.getDirectByLocation`
 
 ## Todo:
 - [ ] update test functions for new improvements
-- [ ] add example for new `onc.getDirectFiles()` features
+- [x] add example for new `onc.getDirectFiles()` features -> [basic_filter_and_download.py](/examples/basic_filter_and_download.py)
 
 ## Installation
 You can use one of the following two examples to install the fork:
 - Recommended for development. Clone the repository and install it with `-e`. Therefore, a `git pull` will be enough to import the updated code.
   Depending on your Python installation adopt python3/pip3 to python/pip, however python3 is required. And run:
 ```bash
-mkdir /path/to/repros  # adopted the path, be aware that git clone creates a directory with the repro name
-cd /path/to/repros # enter the directory
+$path_git_repros='/path/to/git_repros'  # adopted the path, be aware that `git clone` creates a directory with the repro name
+mkdir $path_git_repros  # create dir
+cd $path_git_repros # enter the directory
 
 git clone https://github.com/FlyingAndrew/api-python-client.git  # downloads the repro
 cd api-python-client  # enter the repository directory
