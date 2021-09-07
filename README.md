@@ -36,7 +36,7 @@ pip3 install -U --user -e .  # install the package in developer mode.
 ```
 - Uninstall an existing installation (pip only compares the version number and not the code) and install it from the repository:
 ```bash
-pip uninstall -y onc;
+pip uninstall -y onc
 pip install -U git+git://github.com/FlyingAndrew/api-python-client.git@master
 ```
 # Original Readme
