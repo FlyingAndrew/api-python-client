@@ -113,7 +113,7 @@ class ShareJobThreads:
         self.active = False
         self.event = threading.Event()
 
-        self.threads = None  # the worker threads
+        self.threads = None  # the _worker_ threads
         self.iterable = None  # the iterable
         self.i = None  # the actual index
         self.f = None  # the function
@@ -130,15 +130,15 @@ class ShareJobThreads:
         self.threads = []
 
         for i in range(self.thread_n):
-            thread_i = threading.Thread(target=self.worker)
+            thread_i = threading.Thread(target=self._worker_)
             thread_i.start()
             self.threads.append(thread_i)
 
-        self.thread_bar = threading.Thread(target=self.update_bar)
+        self.thread_bar = threading.Thread(target=self._update_bar_)
         self.thread_bar.start()
         self.thread_bar.join()
 
-    def update_bar(self, ):
+    def _update_bar_(self, ):
         last_i = 0
 
         with tqdm(self.iterable,
@@ -162,14 +162,14 @@ class ShareJobThreads:
     def stop(self, ):
         self.active = False
 
-    def worker(self, ):
+    def _worker_(self, ):
         iterable_i = True
         while self.active and iterable_i:
-            iterable_i = self.get_next()
+            iterable_i = self._get_next_()
             if iterable_i is not False:
                 self.f(iterable_i)
 
-    def get_next(self, ):
+    def _get_next_(self, ):
         with self.lock:
             if len(self.iterable) > self.i:
                 iterable_i = self.iterable[self.i]
