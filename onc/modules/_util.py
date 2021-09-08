@@ -115,7 +115,8 @@ class ShareJobThreads:
 
         self.threads = None  # the _worker_ threads
         self.iterable = None  # the iterable
-        self.i = None  # the actual index
+        self.i = None  # the actual index of the next item
+        self.i_bar = None  # the actual index of the done items
         self.f = None  # the function
 
         # formatter for the bar, if not None, the iterable has to be a dict, i.e. {'a':1, 'b':2}, and the fmt: '{a}-{b}'
@@ -125,6 +126,7 @@ class ShareJobThreads:
         self.active = True
         self.iterable = iterable
         self.i = 0
+        self.i_bar = 0
         self.f = f
 
         self.threads = []
@@ -144,11 +146,11 @@ class ShareJobThreads:
         with tqdm(self.iterable,
                   file=sys.stdout,
                   unit='file') as bar:
-            while any([i.is_alive() for i in self.threads]) or last_i != self.i:
+            while any([thread_i.is_alive() for thread_i in self.threads]) or last_i != self.i_bar:
                 with self.lock:
                     # print(self.i, self.active)
-                    if last_i != self.i:
-                        for i in range(self.i - last_i):
+                    if last_i != self.i_bar:
+                        for i in range(self.i_bar - last_i):
                             str_i = self.iterable[self.i - 1 - i]
                             if self.fmt is not None and isinstance(self.iterable[self.i - 1 - i], dict):
                                 str_i = self.fmt.format(**self.iterable[self.i - 1 - i])
@@ -156,7 +158,7 @@ class ShareJobThreads:
                             bar.set_postfix({'i': str_i})
                             bar.update()
 
-                        last_i = self.i
+                        last_i = self.i_bar
                 time.sleep(0.1)  # delay a bit
 
     def stop(self, ):
@@ -168,6 +170,7 @@ class ShareJobThreads:
             iterable_i = self._get_next_()
             if iterable_i is not False:
                 self.f(iterable_i)
+                self.i_bar += 1
 
     def _get_next_(self, ):
         with self.lock:
