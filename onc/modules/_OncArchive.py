@@ -142,7 +142,7 @@ class _OncArchive(_OncService):
             # check for exiting files and pop those
             if not overwrite:
                 exiting_files = []
-                for i, file_i in enumerate(dataRows['files'].copy()):
+                for i, file_i in enumerate(dataRows['files'].copy()):  # copy is important for dataRows['files'].pop
                     if isinstance(file_i, str):
                         filename = file_i
                         outPath = self._config('outPath')
@@ -301,7 +301,6 @@ class _OncArchiveDownloader(_OncArchive):
         fileExists = os.path.exists(filePath)
 
         if (not fileExists) or (fileExists and self.overwrite):
-            # print('   ({:d} of {:d}) Downloading file: "{:s}"'.format(tries, n, filename))
             try:
                 downInfo = self.getFile(filename, overwrite=self.overwrite, outPath=outPath)
                 with self.info_lock:
@@ -313,7 +312,6 @@ class _OncArchiveDownloader(_OncArchive):
                 raise
             self.tries += 1
         else:
-            # print('   Skipping "{:s}": File already exists.'.format(filename))
             downInfo = {
                 'url': self._getDownloadUrl(filename),
                 'status': 'skipped',
