@@ -100,7 +100,7 @@ class _DataProductFile:
                     # Gone
                     print(
                         '   FTP Error: File not found. If this product order is recent, retry downloading this product'
-                        ' using the method downloadProduct with the runId: ' + self._filters['dpRunId'])
+                        ' using the method downloadProduct with the runId: ' + str(self._filters['dpRunId']))
                     _printErrorMessage(response)
             except Exception as ex:
                 raise ex
