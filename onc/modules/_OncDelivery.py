@@ -23,7 +23,7 @@ class _OncDelivery(_OncService):
         self.pollPeriod = 2.0
 
     def orderDataProduct(self, filters: dict, maxRetries: int, downloadResultsOnly: bool, includeMetadataFile: bool,
-                         overwrite: bool):
+                         overwrite: bool, outPath: str = None):
         fileList = []
         try:
             # Request the product
@@ -38,7 +38,8 @@ class _OncDelivery(_OncService):
                 # Run and download files
                 runData = self.runDataProduct(requestData['dpRequestId'], waitComplete=False)
                 for runId in runData['runIds']:
-                    fileList.extend(self._downloadProductFiles(runId, includeMetadataFile, maxRetries, overwrite))
+                    fileList.extend(self._downloadProductFiles(runId, includeMetadataFile, maxRetries, overwrite,
+                                                               outPath=outPath))
 
             print('')
             self._printProductOrderStats(fileList, runData)
@@ -72,6 +73,7 @@ class _OncDelivery(_OncService):
         log = _PollLog(True)
         url = '{:s}api/dataProductDelivery'.format(self._config('baseUrl'))
         runResult = {'runIds': [], 'fileCount': 0, 'runTime': 0, 'requestCount': 0}
+        data = []
 
         try:
             start = time()
@@ -98,7 +100,8 @@ class _OncDelivery(_OncService):
 
             # self.print(data)
             # print('got filecount {}'.format(data[0]['fileCount']))
-            runResult['fileCount'] = data[0]['fileCount']
+            if not data:
+                runResult['fileCount'] = data[0]['fileCount']
             runResult['runTime'] = time() - start
 
             # print a new line after the process finishes
@@ -115,7 +118,7 @@ class _OncDelivery(_OncService):
         return runResult
 
     def downloadDataProduct(self, runId: int, maxRetries: int, downloadResultsOnly: bool, includeMetadataFile: bool,
-                            overwrite: bool):
+                            overwrite: bool, outPath: str = None):
         """
         A public wrapper for downloadProductFiles that lets a user download data products with a runId
         """
@@ -123,18 +126,22 @@ class _OncDelivery(_OncService):
             if downloadResultsOnly:
                 fileData = self._infoForProductFiles(runId, 0, includeMetadataFile)
             else:
-                fileData = self._downloadProductFiles(runId, includeMetadataFile, maxRetries, overwrite)
+                fileData = self._downloadProductFiles(runId, includeMetadataFile, maxRetries, overwrite,
+                                                      outPath=outPath)
         except Exception:
             raise
 
         return fileData
 
     def _downloadProductFiles(self, runId: int, getMetadata: bool, maxRetries: int, overwrite: bool,
-                              fileCount: int = 0):
+                              fileCount: int = 0, outPath: str = None):
         fileList = []
         index = 1
         baseUrl = self._config('baseUrl')
         token = self._config('token')
+
+        if outPath is None:
+            outPath = self._config('outPath')
 
         # keep increasing index until fileCount or until we get 404
         doLoop = True
@@ -147,7 +154,7 @@ class _OncDelivery(_OncService):
         while doLoop:
             # stop after too many retries
             try:
-                status = dpf.download(timeout, self.pollPeriod, self._config('outPath'), maxRetries, overwrite)
+                status = dpf.download(timeout, self.pollPeriod, outPath, maxRetries, overwrite)
             except Exception:
                 raise
 
@@ -165,10 +172,10 @@ class _OncDelivery(_OncService):
         if getMetadata:
             dpf = _DataProductFile(runId, 'meta', baseUrl, token)
             try:
-                status = dpf.download(timeout, self.pollPeriod, self._config('outPath'), maxRetries, overwrite)
+                status = dpf.download(timeout, self.pollPeriod, outPath, maxRetries, overwrite)
                 if status == 200 or status == 777:
                     fileList.append(dpf.getInfo())
-                    doLoop = False
+                    # doLoop = False
             except Exception as ex:
                 print(ex)
                 print("   Metadata file was not downloaded")

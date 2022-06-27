@@ -14,26 +14,25 @@ onc = ONC(token, True, True, 'output')
 
 
 def manualRequestProduct(filters: dict):
-	# Manually requests data product, doesn't execute or download
-	return onc.requestDataProduct(filters)
+    # Manually requests data product, doesn't execute or download
+    return onc.requestDataProduct(filters)
 
 
 def manualRunProduct(dpRequestId: int):
-	# Manually runs request id
-	return onc.runDataProduct(dpRequestId)
+    # Manually runs request id
+    return onc.runDataProduct(dpRequestId)
 
 
-def manualDownloadProduct(dpRunId: int, outPath: str='', resultsOnly: bool=False):
-	# Manually downloads runId
-	onc.outPath = outPath
-	return onc.downloadDataProduct(dpRunId, downloadResultsOnly=resultsOnly)
+def manualDownloadProduct(dpRunId: int, outPath: str = None, resultsOnly: bool = False):
+    # Manually downloads runId
+    return onc.downloadDataProduct(dpRunId, downloadResultsOnly=resultsOnly, outPath=outPath)
 
 
 def test_getDataProductUrls(onc, filters):
-	print('\n9. TEST getDataProductUrls()')
-	res = onc.getDataProductUrls(filters)
+    print('\n9. TEST getDataProductUrls()')
+    res = onc.getDataProductUrls(filters)
 
 
 def test_downloadFile(onc, url):
-	print('\n9. TEST downloadFile()')
-	res = onc.downloadFile(url)
+    print('\n9. TEST downloadFile()')
+    res = onc.downloadFile(url)

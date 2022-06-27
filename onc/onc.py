@@ -103,8 +103,9 @@ class ONC:
     # Delivery methods
     @add_docs(_OncDelivery.orderDataProduct)
     def orderDataProduct(self, filters: dict, maxRetries: int = 0, downloadResultsOnly: bool = False,
-                         includeMetadataFile: bool = True, overwrite: bool = False):
-        return self.delivery.orderDataProduct(filters, maxRetries, downloadResultsOnly, includeMetadataFile, overwrite)
+                         includeMetadataFile: bool = True, overwrite: bool = False, outPath: str = None):
+        return self.delivery.orderDataProduct(filters, maxRetries, downloadResultsOnly, includeMetadataFile, overwrite,
+                                              outPath=outPath)
 
     @add_docs(_OncDelivery.requestDataProduct)
     def requestDataProduct(self, filters: dict):
@@ -116,8 +117,9 @@ class ONC:
 
     @add_docs(_OncDelivery.downloadDataProduct)
     def downloadDataProduct(self, runId: int, maxRetries: int = 0, downloadResultsOnly: bool = False,
-                            includeMetadataFile: bool = True, overwrite: bool = False):
-        return self.delivery.downloadDataProduct(runId, maxRetries, downloadResultsOnly, includeMetadataFile, overwrite)
+                            includeMetadataFile: bool = True, overwrite: bool = False, outPath: str = None):
+        return self.delivery.downloadDataProduct(runId, maxRetries, downloadResultsOnly, includeMetadataFile, overwrite,
+                                                 outPath=outPath)
 
     # Real-time methods
 
