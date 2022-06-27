@@ -1,3 +1,4 @@
+import os.path
 from time import sleep, time
 
 import requests
@@ -64,7 +65,7 @@ class _DataProductFile:
                     self._downloaded = True
                     self._downloadingTime = round(duration, 3)
                     filename = self.extractNameFromHeader(response)
-                    self._filePath = filename
+                    self._filePath = os.path.join(outPath, filename)
                     self._fileSize = len(response.content)
                     saved = saveAsFile(response, outPath, filename, overwrite)
                     if saved == 0:
@@ -138,7 +139,9 @@ class _DataProductFile:
             'url': self._downloadUrl,
             'status': txtStatus,
             'size': self._fileSize,
-            'file': self._filePath,
+            'fullPath': self._filePath,
+            'outPath': os.path.dirname(self._filePath),
+            'file': os.path.basename(self._filePath),
             'index': self._filters['index'],
             'downloaded': self._downloaded,
             'requestCount': self._retries,
