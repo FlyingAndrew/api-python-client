@@ -27,7 +27,7 @@ $path_git_repros='/path/to/git_repros'  # adopted the path, be aware that `git c
 mkdir $path_git_repros  # create dir
 cd $path_git_repros # enter the directory
 
-git clone https://github.com/FlyingAndrew/api-python-client.git  # downloads the repro
+git clone https://github.com/kholzapfel/api-python-client.git  # downloads the repro
 cd api-python-client  # enter the repository directory
 
 python3 -m build  # This will create the files located in the folder `.egg-info`
